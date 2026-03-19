@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: customer-dashboard-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: USE_MOCK_DATA
+        value: "true"
+      - key: FRONTEND_URL
+        sync: false
+      - key: GAINSIGHT_API_URL
+        sync: false
+      - key: GAINSIGHT_API_KEY
+        sync: false
+      - key: SALESFORCE_CLIENT_ID
+        sync: false
+      - key: SALESFORCE_CLIENT_SECRET
+        sync: false
+      - key: SALESFORCE_INSTANCE_URL
+        sync: false
+      - key: GONG_API_KEY
+        sync: false
+      - key: GONG_API_SECRET
+        sync: false
+      - key: ROCKETLANE_API_KEY
+        sync: false
+      - key: FRESHDESK_DOMAIN
+        sync: false
+      - key: FRESHDESK_API_KEY
+        sync: false
+    healthCheckPath: /api/health
+
+  - type: web
+    name: customer-dashboard-ui
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
