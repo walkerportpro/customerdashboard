@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -7,8 +7,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Database,
+  Check,
 } from "lucide-react";
 import { useState } from "react";
+import { useMockData } from "../context/MockDataContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -19,7 +21,7 @@ const navItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
+  const { isLoaded, loadMockData } = useMockData();
 
   function isActive(to: string) {
     if (to === "/") return location.pathname === "/";
@@ -27,7 +29,7 @@ export default function Sidebar() {
   }
 
   function handleMockDataClick() {
-    navigate("/settings");
+    loadMockData();
   }
 
   return (
@@ -89,21 +91,36 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Mock Mode Button */}
+      {/* Mock Data Button */}
       <div className="px-3 pb-4">
         <button
           type="button"
           onClick={handleMockDataClick}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/30 transition-all duration-150 cursor-pointer"
-          title={collapsed ? "Mock Data Mode - Click to configure integrations" : undefined}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-150 cursor-pointer ${
+            isLoaded
+              ? "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/30"
+              : "bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/30"
+          }`}
+          title={collapsed ? (isLoaded ? "Mock Data Loaded" : "Load Mock Data") : undefined}
         >
           {collapsed ? (
-            <Database className="w-4 h-4 text-amber-400 flex-shrink-0 mx-auto" />
+            isLoaded ? (
+              <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mx-auto" />
+            ) : (
+              <Database className="w-4 h-4 text-amber-400 flex-shrink-0 mx-auto" />
+            )
+          ) : isLoaded ? (
+            <>
+              <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span className="text-[11px] text-emerald-400 font-medium animate-fade-in">
+                Mock Data Loaded
+              </span>
+            </>
           ) : (
             <>
-              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse-slow flex-shrink-0" />
+              <Database className="w-4 h-4 text-amber-400 flex-shrink-0" />
               <span className="text-[11px] text-amber-400 font-medium animate-fade-in">
-                Mock Data Mode
+                Load Mock Data
               </span>
             </>
           )}

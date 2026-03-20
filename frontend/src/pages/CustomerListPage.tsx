@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, Users, Activity } from "lucide-react";
 import { apiFetch } from "../api/client";
+import { useMockData } from "../context/MockDataContext";
 import type { Customer } from "../types";
 
 function healthBadge(score: number): string {
@@ -11,17 +12,31 @@ function healthBadge(score: number): string {
 }
 
 export default function CustomerListPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [apiCustomers, setApiCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const { customers: mockCustomers, isLoaded: mockLoaded } = useMockData();
 
   useEffect(() => {
     const params = search ? `?search=${encodeURIComponent(search)}` : "";
     setLoading(true);
     apiFetch<Customer[]>(`/customers${params}`)
-      .then(setCustomers)
+      .then(setApiCustomers)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [search]);
+
+  // Use mock data when loaded, with client-side search filtering
+  const allCustomers = mockLoaded ? mockCustomers : apiCustomers;
+  const customers = mockLoaded && search
+    ? allCustomers.filter(
+        (c) =>
+          c.name.toLowerCase().includes(search.toLowerCase()) ||
+          c.industry.toLowerCase().includes(search.toLowerCase())
+      )
+    : allCustomers;
+
+  const showEmpty = !loading && customers.length === 0 && !mockLoaded;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -50,17 +65,25 @@ export default function CustomerListPage() {
         />
       </div>
 
-      {loading ? (
+      {loading && !mockLoaded ? (
         <div className="flex items-center justify-center py-16">
           <div className="flex items-center gap-3 text-dark-400">
             <Activity className="w-5 h-5 animate-spin" />
             <span>Loading customers...</span>
           </div>
         </div>
+      ) : showEmpty ? (
+        <div className="text-dark-400 py-16 text-center glass-card">
+          <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="mb-1">No customers found.</p>
+          <p className="text-xs">
+            Click <span className="text-amber-400 font-medium">Load Mock Data</span> in the sidebar to populate sample data.
+          </p>
+        </div>
       ) : customers.length === 0 ? (
         <div className="text-dark-400 py-16 text-center glass-card">
           <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          No customers found.
+          No customers match your search.
         </div>
       ) : (
         <div className="glass-card overflow-hidden">

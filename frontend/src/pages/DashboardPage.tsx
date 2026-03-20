@@ -20,6 +20,7 @@ import {
   Cell,
 } from "recharts";
 import { apiFetch } from "../api/client";
+import { useMockData } from "../context/MockDataContext";
 import type { Customer } from "../types";
 
 function StatCard({
@@ -60,14 +61,19 @@ function StatCard({
 const HEALTH_COLORS = ["#10b981", "#f59e0b", "#ef4444"];
 
 export default function DashboardPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [apiCustomers, setApiCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const { customers: mockCustomers, isLoaded: mockLoaded } = useMockData();
 
   useEffect(() => {
     apiFetch<Customer[]>("/customers")
-      .then(setCustomers)
+      .then(setApiCustomers)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const customers = mockLoaded ? mockCustomers : apiCustomers;
+  const showEmpty = !loading && customers.length === 0 && !mockLoaded;
 
   const healthy = customers.filter((c) => c.health_score >= 80).length;
   const attention = customers.filter(
@@ -105,12 +111,32 @@ export default function DashboardPage() {
     .filter((c) => c.health_score < 60)
     .sort((a, b) => a.health_score - b.health_score);
 
-  if (loading) {
+  if (loading && !mockLoaded) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3 text-dark-400">
           <Activity className="w-5 h-5 animate-spin" />
           <span>Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (showEmpty) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-100">Dashboard</h1>
+          <p className="text-sm text-dark-400 mt-1">
+            Overview of your customer health and key metrics
+          </p>
+        </div>
+        <div className="glass-card p-12 text-center">
+          <Users className="w-12 h-12 mx-auto mb-4 text-dark-500" />
+          <h2 className="text-lg font-semibold text-gray-200 mb-2">No data yet</h2>
+          <p className="text-sm text-dark-400 max-w-md mx-auto">
+            Click the <span className="text-amber-400 font-medium">Load Mock Data</span> button in the sidebar to populate the dashboard with sample customer data.
+          </p>
         </div>
       </div>
     );
