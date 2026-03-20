@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -6,6 +6,7 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  Database,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -18,10 +19,15 @@ const navItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   function isActive(to: string) {
     if (to === "/") return location.pathname === "/";
     return location.pathname.startsWith(to);
+  }
+
+  function handleMockDataClick() {
+    navigate("/settings");
   }
 
   return (
@@ -70,8 +76,9 @@ export default function Sidebar() {
       {/* Collapse toggle */}
       <div className="px-3 pb-4">
         <button
+          type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center w-full py-2 rounded-lg text-dark-400 hover:text-gray-300 hover:bg-dark-800/60 transition-colors"
+          className="flex items-center justify-center w-full py-2 rounded-lg text-dark-400 hover:text-gray-300 hover:bg-dark-800/60 transition-colors cursor-pointer"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
@@ -82,17 +89,26 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Mock Mode Indicator */}
-      {!collapsed && (
-        <div className="px-3 pb-4 animate-fade-in">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse-slow" />
-            <span className="text-[11px] text-amber-400 font-medium">
-              Mock Data Mode
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Mock Mode Button */}
+      <div className="px-3 pb-4">
+        <button
+          type="button"
+          onClick={handleMockDataClick}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/30 transition-all duration-150 cursor-pointer"
+          title={collapsed ? "Mock Data Mode - Click to configure integrations" : undefined}
+        >
+          {collapsed ? (
+            <Database className="w-4 h-4 text-amber-400 flex-shrink-0 mx-auto" />
+          ) : (
+            <>
+              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse-slow flex-shrink-0" />
+              <span className="text-[11px] text-amber-400 font-medium animate-fade-in">
+                Mock Data Mode
+              </span>
+            </>
+          )}
+        </button>
+      </div>
     </aside>
   );
 }
