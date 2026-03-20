@@ -260,10 +260,11 @@ export default function SettingsPage() {
                 >
                   {/* Integration Header */}
                   <button
+                    type="button"
                     onClick={() =>
                       setExpandedId(expanded ? null : integration.id)
                     }
-                    className="w-full flex items-center gap-4 p-4 hover:bg-dark-800/40 transition-colors text-left"
+                    className="relative z-10 w-full flex items-center gap-4 p-4 hover:bg-dark-800/40 transition-colors text-left cursor-pointer"
                   >
                     <div
                       className={`flex items-center justify-center w-10 h-10 rounded-lg border text-sm font-bold flex-shrink-0 ${
@@ -331,9 +332,10 @@ export default function SettingsPage() {
 
                         <div className="flex items-center gap-3 pt-2">
                           <button
+                            type="button"
                             onClick={() => handleSave(integration)}
                             disabled={saving === integration.id}
-                            className="btn-primary disabled:opacity-50"
+                            className="btn-primary disabled:opacity-50 cursor-pointer"
                           >
                             {saving === integration.id
                               ? "Saving..."
@@ -343,8 +345,9 @@ export default function SettingsPage() {
                           </button>
                           {connected && (
                             <button
+                              type="button"
                               onClick={() => handleDisconnect(integration.id)}
-                              className="px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                              className="px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                             >
                               <XCircle className="w-4 h-4 inline mr-1" />
                               Disconnect
