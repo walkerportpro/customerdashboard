@@ -1,16 +1,32 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import type { Customer } from "../types";
+import type {
+  Customer,
+  VolumeTrend,
+  GainsightMetrics,
+  GongData,
+  TicketSummary,
+} from "../types";
 
 interface MockDataState {
   customers: Customer[];
   isLoaded: boolean;
   loadMockData: () => void;
+  loadVolumes: VolumeTrend | null;
+  invoiceVolumes: VolumeTrend | null;
+  gainsightAggregate: GainsightMetrics | null;
+  gongAggregate: GongData | null;
+  ticketAggregate: TicketSummary | null;
 }
 
 const MockDataContext = createContext<MockDataState>({
   customers: [],
   isLoaded: false,
   loadMockData: () => {},
+  loadVolumes: null,
+  invoiceVolumes: null,
+  gainsightAggregate: null,
+  gongAggregate: null,
+  ticketAggregate: null,
 });
 
 export function useMockData() {
@@ -66,17 +82,152 @@ const SAMPLE_CUSTOMERS: Customer[] = [
   { id: "cus_STtdW1qli8EQ4N", name: "Year-Round Enterprises", industry: "Logistics", health_score: 62, account_manager: "Eric Shure" },
 ];
 
+// Aggregate load volumes (total loads across portfolio)
+const SAMPLE_LOAD_VOLUMES: VolumeTrend = {
+  data: [
+    { date: "2025-04", value: 12450 },
+    { date: "2025-05", value: 13200 },
+    { date: "2025-06", value: 14800 },
+    { date: "2025-07", value: 14100 },
+    { date: "2025-08", value: 15600 },
+    { date: "2025-09", value: 16200 },
+    { date: "2025-10", value: 17800 },
+    { date: "2025-11", value: 16900 },
+    { date: "2025-12", value: 15400 },
+    { date: "2026-01", value: 18200 },
+    { date: "2026-02", value: 19500 },
+    { date: "2026-03", value: 21300 },
+  ],
+  trend: "up",
+  change_pct: 14.2,
+};
+
+// Aggregate invoicing volumes (total invoiced amount in thousands)
+const SAMPLE_INVOICE_VOLUMES: VolumeTrend = {
+  data: [
+    { date: "2025-04", value: 845 },
+    { date: "2025-05", value: 920 },
+    { date: "2025-06", value: 1050 },
+    { date: "2025-07", value: 980 },
+    { date: "2025-08", value: 1120 },
+    { date: "2025-09", value: 1180 },
+    { date: "2025-10", value: 1340 },
+    { date: "2025-11", value: 1260 },
+    { date: "2025-12", value: 1150 },
+    { date: "2026-01", value: 1420 },
+    { date: "2026-02", value: 1580 },
+    { date: "2026-03", value: 1690 },
+  ],
+  trend: "up",
+  change_pct: 11.8,
+};
+
+// Aggregate Gainsight metrics (portfolio averages)
+const SAMPLE_GAINSIGHT: GainsightMetrics = {
+  health_score: 76,
+  mobile_app_usage_pct: 64.3,
+  tariffs_automation_pct: 47.8,
+};
+
+// Aggregate Gong data (portfolio-wide sentiment)
+const SAMPLE_GONG: GongData = {
+  overall_sentiment: "neutral",
+  sentiment_score: 0.58,
+  recent_calls: 142,
+  bad_calls: [
+    {
+      call_id: "call-agg-001",
+      date: "2026-03-18",
+      summary: "Sunrise Trucking escalated about delayed EDI integration; customer threatened to cancel contract",
+      participants: ["Terrell Cherisier", "Sam Gill (Sunrise Trucking)", "Katie Grundl"],
+      sentiment_score: 0.15,
+    },
+    {
+      call_id: "call-agg-002",
+      date: "2026-03-15",
+      summary: "USA Cargo Logistics frustrated with recurring invoice discrepancies and past-due subscription status",
+      participants: ["Katie Grundl", "VP Operations (USA Cargo)"],
+      sentiment_score: 0.22,
+    },
+    {
+      call_id: "call-agg-003",
+      date: "2026-03-12",
+      summary: "SS Trucking expressed dissatisfaction with mobile app crashes during peak dispatch hours",
+      participants: ["Terrell Cherisier", "Sandhu (SS Trucking)"],
+      sentiment_score: 0.18,
+    },
+    {
+      call_id: "call-agg-004",
+      date: "2026-03-10",
+      summary: "CAC International unhappy with slow support response times on P1 billing issue",
+      participants: ["Katie Grundl", "Dispatch (CAC International)", "Joseph Greenwell"],
+      sentiment_score: 0.25,
+    },
+    {
+      call_id: "call-agg-005",
+      date: "2026-03-07",
+      summary: "The Ace Group raised concerns about tariff automation accuracy for cross-border shipments",
+      participants: ["Terrell Cherisier", "Payables (The Ace Group)"],
+      sentiment_score: 0.30,
+    },
+  ],
+};
+
+// Aggregate ticket summary (all open tickets across portfolio)
+const SAMPLE_TICKETS: TicketSummary = {
+  total_open: 47,
+  by_priority: { P1: 3, P2: 12, P3: 18, P4: 10, P5: 4 },
+  tickets: [
+    { id: "FD-40112", subject: "API gateway returning 502 errors intermittently", status: "Escalated", priority: "P1", created_at: "2026-03-18", updated_at: "2026-03-20" },
+    { id: "FD-40098", subject: "SSO login broken after latest update for Forward Air", status: "In Progress", priority: "P1", created_at: "2026-03-17", updated_at: "2026-03-19" },
+    { id: "FD-40087", subject: "Mobile app push notifications not working on Android", status: "Open", priority: "P1", created_at: "2026-03-15", updated_at: "2026-03-18" },
+    { id: "FD-40075", subject: "Invoice PDF generation fails for multi-currency accounts", status: "In Progress", priority: "P2", created_at: "2026-03-14", updated_at: "2026-03-19" },
+    { id: "FD-40062", subject: "Tariff calculation incorrect for cross-border CA shipments", status: "Escalated", priority: "P2", created_at: "2026-03-13", updated_at: "2026-03-20" },
+    { id: "FD-40051", subject: "Tracking page showing stale data for Medlog loads", status: "In Progress", priority: "P2", created_at: "2026-03-12", updated_at: "2026-03-18" },
+    { id: "FD-40044", subject: "Bulk import timing out for files over 10MB", status: "Open", priority: "P2", created_at: "2026-03-11", updated_at: "2026-03-17" },
+    { id: "FD-40033", subject: "Webhook delivery failures to customer endpoint (Ace Group)", status: "Waiting on Customer", priority: "P2", created_at: "2026-03-10", updated_at: "2026-03-16" },
+    { id: "FD-40028", subject: "Dashboard loading slowly for large datasets", status: "In Progress", priority: "P3", created_at: "2026-03-09", updated_at: "2026-03-18" },
+    { id: "FD-40019", subject: "Report export missing columns for custom fields", status: "Open", priority: "P3", created_at: "2026-03-08", updated_at: "2026-03-15" },
+    { id: "FD-40011", subject: "Email notifications delayed by 2+ hours", status: "In Progress", priority: "P3", created_at: "2026-03-07", updated_at: "2026-03-14" },
+    { id: "FD-40005", subject: "Rate limiting too aggressive on search API", status: "Waiting on Customer", priority: "P3", created_at: "2026-03-06", updated_at: "2026-03-12" },
+    { id: "FD-39998", subject: "Custom field mapping lost after Salesforce sync", status: "Open", priority: "P3", created_at: "2026-03-05", updated_at: "2026-03-11" },
+    { id: "FD-39990", subject: "Data discrepancy between dashboard and API response", status: "Open", priority: "P4", created_at: "2026-03-04", updated_at: "2026-03-10" },
+    { id: "FD-39982", subject: "User permissions not inherited from parent org", status: "Open", priority: "P4", created_at: "2026-03-03", updated_at: "2026-03-09" },
+  ],
+};
+
 export function MockDataProvider({ children }: { children: ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadVolumes, setLoadVolumes] = useState<VolumeTrend | null>(null);
+  const [invoiceVolumes, setInvoiceVolumes] = useState<VolumeTrend | null>(null);
+  const [gainsightAggregate, setGainsightAggregate] = useState<GainsightMetrics | null>(null);
+  const [gongAggregate, setGongAggregate] = useState<GongData | null>(null);
+  const [ticketAggregate, setTicketAggregate] = useState<TicketSummary | null>(null);
 
   const loadMockData = useCallback(() => {
     setCustomers(SAMPLE_CUSTOMERS);
+    setLoadVolumes(SAMPLE_LOAD_VOLUMES);
+    setInvoiceVolumes(SAMPLE_INVOICE_VOLUMES);
+    setGainsightAggregate(SAMPLE_GAINSIGHT);
+    setGongAggregate(SAMPLE_GONG);
+    setTicketAggregate(SAMPLE_TICKETS);
     setIsLoaded(true);
   }, []);
 
   return (
-    <MockDataContext.Provider value={{ customers, isLoaded, loadMockData }}>
+    <MockDataContext.Provider
+      value={{
+        customers,
+        isLoaded,
+        loadMockData,
+        loadVolumes,
+        invoiceVolumes,
+        gainsightAggregate,
+        gongAggregate,
+        ticketAggregate,
+      }}
+    >
       {children}
     </MockDataContext.Provider>
   );
