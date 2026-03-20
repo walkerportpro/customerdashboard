@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { ArrowLeft, Building2, User } from "lucide-react";
 import { useApiData } from "../hooks/useCustomerData";
 import Card from "../components/Card";
 import VolumeChart from "../components/VolumeChart";
@@ -28,18 +29,31 @@ export default function CustomerDetailPage() {
   const tickets = useApiData<TicketSummary>(`${prefix}/tickets`);
 
   return (
-    <div>
+    <div className="space-y-6 animate-fade-in">
       {/* Breadcrumb & Customer Header */}
-      <div className="mb-6">
-        <Link to="/" className="text-sm text-blue-600 hover:text-blue-800">
-          &larr; All Customers
+      <div>
+        <Link
+          to="/customers"
+          className="inline-flex items-center gap-1.5 text-sm text-accent-400 hover:text-accent-300 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          All Customers
         </Link>
         {customer.data && (
-          <div className="mt-2">
-            <h2 className="text-2xl font-bold text-gray-900">{customer.data.name}</h2>
-            <p className="text-sm text-gray-500">
-              {customer.data.industry} &middot; {customer.data.account_manager}
-            </p>
+          <div className="mt-3">
+            <h2 className="text-2xl font-bold text-gray-100">
+              {customer.data.name}
+            </h2>
+            <div className="flex items-center gap-4 mt-1">
+              <span className="flex items-center gap-1.5 text-sm text-dark-400">
+                <Building2 className="w-3.5 h-3.5" />
+                {customer.data.industry}
+              </span>
+              <span className="flex items-center gap-1.5 text-sm text-dark-400">
+                <User className="w-3.5 h-3.5" />
+                {customer.data.account_manager}
+              </span>
+            </div>
           </div>
         )}
       </div>
