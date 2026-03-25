@@ -43,7 +43,7 @@ def get_gong_data(customer_id: str) -> GongData:
                 summary=_BAD_CALL_SUMMARIES[idx],
                 participants=["Account Manager", "Customer Success Lead", "Client VP Operations"],
                 sentiment_score=round(0.1 + (s % 25) / 100, 2),
-                url=f"https://app.gong.io/call?id=call-{customer_id}-{i:03d}",
+                url="",
             )
         )
 
