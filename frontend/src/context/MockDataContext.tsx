@@ -219,6 +219,30 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
     setIsLoaded(true);
   }, []);
 
+  // Load data for connected integrations using localStorage config + sample data
+  const loadFromLocalConfigs = useCallback(() => {
+    try {
+      const raw = localStorage.getItem("integration_configs");
+      if (!raw) return;
+      const configs = JSON.parse(raw) as Record<string, Record<string, string>>;
+      const connected = Object.keys(configs);
+      if (connected.length === 0) return;
+
+      setConnectedIntegrations(connected);
+      setCustomers(SAMPLE_CUSTOMERS);
+      if (configs.gong) setGongAggregate(SAMPLE_GONG);
+      if (configs.freshdesk) setTicketAggregate(SAMPLE_TICKETS);
+      if (configs.gainsight) setGainsightAggregate(SAMPLE_GAINSIGHT);
+      if (configs.stripe || configs.salesforce) {
+        setLoadVolumes(SAMPLE_LOAD_VOLUMES);
+        setInvoiceVolumes(SAMPLE_INVOICE_VOLUMES);
+      }
+      setIsLoaded(true);
+    } catch {
+      // ignore malformed localStorage
+    }
+  }, []);
+
   // Fetch real data from connected integrations via the dashboard API
   const refreshDashboard = useCallback(() => {
     apiFetch<DashboardData>("/dashboard")
@@ -239,9 +263,10 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
         if (data.tickets) setTicketAggregate(data.tickets);
       })
       .catch(() => {
-        // Dashboard API not available — no-op, user can still use mock data
+        // Backend not available — fall back to localStorage configs + sample data
+        loadFromLocalConfigs();
       });
-  }, []);
+  }, [loadFromLocalConfigs]);
 
   // On mount, re-sync any saved integration credentials to the backend
   // (handles server restarts where in-memory store is cleared) then fetch data
@@ -252,9 +277,9 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
         if (raw) {
           const configs = JSON.parse(raw) as Record<string, Record<string, string>>;
           // Re-register all saved integrations with the backend
-          await Promise.all(
+          await Promise.allSettled(
             Object.entries(configs).map(([id, credentials]) =>
-              apiPost(`/integrations/${id}/connect`, { credentials }).catch(() => {})
+              apiPost(`/integrations/${id}/connect`, { credentials })
             )
           );
         }
