@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import type {
   Customer,
   VolumeTrend,
@@ -213,6 +213,32 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
     setGongAggregate(SAMPLE_GONG);
     setTicketAggregate(SAMPLE_TICKETS);
     setIsLoaded(true);
+  }, []);
+
+  // Auto-load data for connected integrations
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("integration_configs");
+      if (!raw) return;
+      const configs = JSON.parse(raw) as Record<string, Record<string, string>>;
+      const connected = Object.keys(configs);
+      if (connected.length === 0) return;
+
+      // Always load customers as the base dataset when any integration is connected
+      setCustomers(SAMPLE_CUSTOMERS);
+
+      if (configs.gong) setGongAggregate(SAMPLE_GONG);
+      if (configs.freshdesk) setTicketAggregate(SAMPLE_TICKETS);
+      if (configs.gainsight) setGainsightAggregate(SAMPLE_GAINSIGHT);
+      if (configs.stripe) {
+        setLoadVolumes(SAMPLE_LOAD_VOLUMES);
+        setInvoiceVolumes(SAMPLE_INVOICE_VOLUMES);
+      }
+
+      setIsLoaded(true);
+    } catch {
+      // ignore malformed localStorage
+    }
   }, []);
 
   return (
