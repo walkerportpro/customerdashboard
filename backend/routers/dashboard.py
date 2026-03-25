@@ -50,8 +50,8 @@ async def get_dashboard():
                     api_secret=creds.get("api_secret", ""),
                 )
             except Exception as exc:
-                logger.warning("Gong API call failed: %s", exc)
-                gong = None
+                logger.warning("Gong API call failed, using aggregated mock data: %s", exc)
+                gong = _aggregate_gong(customers)
 
     # ── Gainsight ──
     gainsight: GainsightMetrics | None = None
@@ -93,4 +93,35 @@ def _aggregate_gainsight(customers: list[Customer]) -> GainsightMetrics:
         health_score=round(sum(m.health_score for m in metrics) / n),
         mobile_app_usage_pct=round(sum(m.mobile_app_usage_pct for m in metrics) / n, 1),
         tariffs_automation_pct=round(sum(m.tariffs_automation_pct for m in metrics) / n, 1),
+    )
+
+
+def _aggregate_gong(customers: list[Customer]) -> GongData:
+    """Aggregate per-customer Gong data into portfolio-wide view."""
+    all_bad_calls: list = []
+    total_score = 0.0
+    total_calls = 0
+
+    for c in customers:
+        cdata = get_mock_gong(c.id)
+        total_score += cdata.sentiment_score * cdata.recent_calls
+        total_calls += cdata.recent_calls
+        all_bad_calls.extend(cdata.bad_calls)
+
+    avg_score = round(total_score / max(total_calls, 1), 2)
+    if avg_score >= 0.6:
+        sentiment = "positive"
+    elif avg_score >= 0.4:
+        sentiment = "neutral"
+    else:
+        sentiment = "negative"
+
+    # Return worst calls sorted by sentiment score
+    all_bad_calls.sort(key=lambda c: c.sentiment_score)
+
+    return GongData(
+        overall_sentiment=sentiment,
+        sentiment_score=avg_score,
+        recent_calls=total_calls,
+        bad_calls=all_bad_calls[:10],
     )

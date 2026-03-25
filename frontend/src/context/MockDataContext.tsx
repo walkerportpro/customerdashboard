@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-import { apiFetch } from "../api/client";
+import { apiFetch, apiPost } from "../api/client";
 import type {
   Customer,
   DashboardData,
@@ -225,11 +225,10 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         setConnectedIntegrations(data.connected_integrations);
 
-        if (data.connected_integrations.length === 0) return;
-
-        // Load customers from backend
+        // Always load customers from backend when available
         if (data.customers.length > 0) {
           setCustomers(data.customers);
+          setIsLoaded(true);
         }
 
         // Set integration-specific data (real data from connected APIs)
@@ -238,17 +237,34 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
         if (data.load_volumes) setLoadVolumes(data.load_volumes);
         if (data.invoice_volumes) setInvoiceVolumes(data.invoice_volumes);
         if (data.tickets) setTicketAggregate(data.tickets);
-
-        setIsLoaded(true);
       })
       .catch(() => {
         // Dashboard API not available — no-op, user can still use mock data
       });
   }, []);
 
-  // On mount, check for connected integrations and load real data
+  // On mount, re-sync any saved integration credentials to the backend
+  // (handles server restarts where in-memory store is cleared) then fetch data
   useEffect(() => {
-    refreshDashboard();
+    async function syncAndLoad() {
+      try {
+        const raw = localStorage.getItem("integration_configs");
+        if (raw) {
+          const configs = JSON.parse(raw) as Record<string, Record<string, string>>;
+          // Re-register all saved integrations with the backend
+          await Promise.all(
+            Object.entries(configs).map(([id, credentials]) =>
+              apiPost(`/integrations/${id}/connect`, { credentials }).catch(() => {})
+            )
+          );
+        }
+      } catch {
+        // ignore
+      }
+      // Now fetch dashboard data with integrations restored
+      refreshDashboard();
+    }
+    syncAndLoad();
   }, [refreshDashboard]);
 
   return (
