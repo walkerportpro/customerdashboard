@@ -143,11 +143,27 @@ const iconColors: Record<string, string> = {
   freshdesk: "bg-green-500/15 text-green-400 border-green-500/20",
 };
 
+const STORAGE_KEY = "integration_configs";
+
+function loadSavedConfigs(): Record<string, Record<string, string>> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistConfigs(configs: Record<string, Record<string, string>>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+}
+
 export default function SettingsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [savedConfigs, setSavedConfigs] = useState<Record<string, Record<string, string>>>({});
-  const [formData, setFormData] = useState<Record<string, Record<string, string>>>({});
+  const [savedConfigs, setSavedConfigs] = useState<Record<string, Record<string, string>>>(loadSavedConfigs);
+  const [formData, setFormData] = useState<Record<string, Record<string, string>>>(loadSavedConfigs);
   const [saving, setSaving] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   function getFieldValue(integrationId: string, fieldKey: string): string {
     return formData[integrationId]?.[fieldKey] || "";
@@ -165,14 +181,20 @@ export default function SettingsPage() {
   }
 
   function handleSave(integration: Integration) {
+    const fields = formData[integration.id] || {};
+    const hasValues = integration.fields.some((f) => fields[f.key]?.trim());
+    if (!hasValues) return;
+
     setSaving(integration.id);
-    // Simulate save
     setTimeout(() => {
-      setSavedConfigs((prev) => ({
-        ...prev,
-        [integration.id]: { ...formData[integration.id] },
-      }));
+      setSavedConfigs((prev) => {
+        const next = { ...prev, [integration.id]: { ...fields } };
+        persistConfigs(next);
+        return next;
+      });
       setSaving(null);
+      setSaveSuccess(integration.id);
+      setTimeout(() => setSaveSuccess(null), 2000);
     }, 800);
   }
 
@@ -180,6 +202,7 @@ export default function SettingsPage() {
     setSavedConfigs((prev) => {
       const next = { ...prev };
       delete next[integrationId];
+      persistConfigs(next);
       return next;
     });
     setFormData((prev) => {
@@ -352,6 +375,12 @@ export default function SettingsPage() {
                               <XCircle className="w-4 h-4 inline mr-1" />
                               Disconnect
                             </button>
+                          )}
+                          {saveSuccess === integration.id && (
+                            <span className="text-sm text-green-400 flex items-center gap-1">
+                              <CheckCircle2 className="w-4 h-4" />
+                              Connected successfully
+                            </span>
                           )}
                           <a
                             href={integration.docUrl}
