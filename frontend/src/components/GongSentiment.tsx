@@ -7,10 +7,6 @@ function sentimentStyle(s: string) {
   return "badge-red";
 }
 
-function gongCallUrl(callId: string): string {
-  return `https://app.gong.io/call?id=${encodeURIComponent(callId)}`;
-}
-
 export default function GongSentimentCard({ data }: { data: GongData }) {
   return (
     <div className="space-y-4">
@@ -31,27 +27,30 @@ export default function GongSentimentCard({ data }: { data: GongData }) {
             Flagged Calls ({data.bad_calls.length})
           </h4>
           <div className="space-y-2">
-            {data.bad_calls.map((call) => (
-              <a
-                key={call.call_id}
-                href={gongCallUrl(call.call_id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block border border-red-500/20 rounded-lg p-3 bg-red-500/5 hover:bg-red-500/10 hover:border-red-500/30 transition-colors group"
-              >
-                <div className="text-sm text-gray-300 group-hover:text-gray-200">
-                  {call.summary}
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-dark-500">
-                    {call.date} &middot; Sentiment: {call.sentiment_score}
-                  </span>
-                  <span className="text-xs text-dark-500 group-hover:text-blue-400 flex items-center gap-1 transition-colors">
-                    Open in Gong <ExternalLink className="w-3 h-3" />
-                  </span>
-                </div>
-              </a>
-            ))}
+            {data.bad_calls.map((call) => {
+              const url = call.url || `https://app.gong.io/call?id=${encodeURIComponent(call.call_id)}`;
+              return (
+                <a
+                  key={call.call_id}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block border border-red-500/20 rounded-lg p-3 bg-red-500/5 hover:bg-red-500/10 hover:border-red-500/30 transition-colors group"
+                >
+                  <div className="text-sm text-gray-300 group-hover:text-gray-200">
+                    {call.summary}
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-dark-500">
+                      {call.date} &middot; Sentiment: {call.sentiment_score}
+                    </span>
+                    <span className="text-xs text-dark-500 group-hover:text-blue-400 flex items-center gap-1 transition-colors">
+                      Open in Gong <ExternalLink className="w-3 h-3" />
+                    </span>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </div>
       )}

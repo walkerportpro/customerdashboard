@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { apiFetch } from "../api/client";
 import type {
   Customer,
+  DashboardData,
   VolumeTrend,
   GainsightMetrics,
   GongData,
@@ -11,29 +13,34 @@ interface MockDataState {
   customers: Customer[];
   isLoaded: boolean;
   loadMockData: () => void;
+  refreshDashboard: () => void;
   loadVolumes: VolumeTrend | null;
   invoiceVolumes: VolumeTrend | null;
   gainsightAggregate: GainsightMetrics | null;
   gongAggregate: GongData | null;
   ticketAggregate: TicketSummary | null;
+  connectedIntegrations: string[];
 }
 
 const MockDataContext = createContext<MockDataState>({
   customers: [],
   isLoaded: false,
   loadMockData: () => {},
+  refreshDashboard: () => {},
   loadVolumes: null,
   invoiceVolumes: null,
   gainsightAggregate: null,
   gongAggregate: null,
   ticketAggregate: null,
+  connectedIntegrations: [],
 });
 
 export function useMockData() {
   return useContext(MockDataContext);
 }
 
-// Real customer data derived from Stripe
+// ─── Mock data (used by "Load Mock Data" button as demo fallback) ───
+
 const SAMPLE_CUSTOMERS: Customer[] = [
   { id: "cus_U8tp0yG5ggcq0V", name: "International Express Trucking, Inc.", industry: "Trucking", health_score: 92, account_manager: "Terrell Cherisier" },
   { id: "cus_U8YiyI14nvqvNe", name: "Ground Force Freight", industry: "Freight", health_score: 78, account_manager: "Vinny Paz" },
@@ -82,7 +89,6 @@ const SAMPLE_CUSTOMERS: Customer[] = [
   { id: "cus_STtdW1qli8EQ4N", name: "Year-Round Enterprises", industry: "Logistics", health_score: 62, account_manager: "Eric Shure" },
 ];
 
-// Aggregate load volumes (total loads across portfolio)
 const SAMPLE_LOAD_VOLUMES: VolumeTrend = {
   data: [
     { date: "2025-04", value: 12450 },
@@ -102,7 +108,6 @@ const SAMPLE_LOAD_VOLUMES: VolumeTrend = {
   change_pct: 14.2,
 };
 
-// Aggregate invoicing volumes (total invoiced amount in thousands)
 const SAMPLE_INVOICE_VOLUMES: VolumeTrend = {
   data: [
     { date: "2025-04", value: 845 },
@@ -122,14 +127,12 @@ const SAMPLE_INVOICE_VOLUMES: VolumeTrend = {
   change_pct: 11.8,
 };
 
-// Aggregate Gainsight metrics (portfolio averages)
 const SAMPLE_GAINSIGHT: GainsightMetrics = {
   health_score: 76,
   mobile_app_usage_pct: 64.3,
   tariffs_automation_pct: 47.8,
 };
 
-// Aggregate Gong data (portfolio-wide sentiment)
 const SAMPLE_GONG: GongData = {
   overall_sentiment: "neutral",
   sentiment_score: 0.58,
@@ -173,7 +176,6 @@ const SAMPLE_GONG: GongData = {
   ],
 };
 
-// Aggregate ticket summary (all open tickets across portfolio)
 const SAMPLE_TICKETS: TicketSummary = {
   total_open: 47,
   by_priority: { P1: 3, P2: 12, P3: 18, P4: 10, P5: 4 },
@@ -204,7 +206,9 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
   const [gainsightAggregate, setGainsightAggregate] = useState<GainsightMetrics | null>(null);
   const [gongAggregate, setGongAggregate] = useState<GongData | null>(null);
   const [ticketAggregate, setTicketAggregate] = useState<TicketSummary | null>(null);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>([]);
 
+  // Load mock data (demo mode — used when no integrations are connected)
   const loadMockData = useCallback(() => {
     setCustomers(SAMPLE_CUSTOMERS);
     setLoadVolumes(SAMPLE_LOAD_VOLUMES);
@@ -215,31 +219,37 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
     setIsLoaded(true);
   }, []);
 
-  // Auto-load data for connected integrations
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("integration_configs");
-      if (!raw) return;
-      const configs = JSON.parse(raw) as Record<string, Record<string, string>>;
-      const connected = Object.keys(configs);
-      if (connected.length === 0) return;
+  // Fetch real data from connected integrations via the dashboard API
+  const refreshDashboard = useCallback(() => {
+    apiFetch<DashboardData>("/dashboard")
+      .then((data) => {
+        setConnectedIntegrations(data.connected_integrations);
 
-      // Always load customers as the base dataset when any integration is connected
-      setCustomers(SAMPLE_CUSTOMERS);
+        if (data.connected_integrations.length === 0) return;
 
-      if (configs.gong) setGongAggregate(SAMPLE_GONG);
-      if (configs.freshdesk) setTicketAggregate(SAMPLE_TICKETS);
-      if (configs.gainsight) setGainsightAggregate(SAMPLE_GAINSIGHT);
-      if (configs.stripe) {
-        setLoadVolumes(SAMPLE_LOAD_VOLUMES);
-        setInvoiceVolumes(SAMPLE_INVOICE_VOLUMES);
-      }
+        // Load customers from backend
+        if (data.customers.length > 0) {
+          setCustomers(data.customers);
+        }
 
-      setIsLoaded(true);
-    } catch {
-      // ignore malformed localStorage
-    }
+        // Set integration-specific data (real data from connected APIs)
+        if (data.gong) setGongAggregate(data.gong);
+        if (data.gainsight) setGainsightAggregate(data.gainsight);
+        if (data.load_volumes) setLoadVolumes(data.load_volumes);
+        if (data.invoice_volumes) setInvoiceVolumes(data.invoice_volumes);
+        if (data.tickets) setTicketAggregate(data.tickets);
+
+        setIsLoaded(true);
+      })
+      .catch(() => {
+        // Dashboard API not available — no-op, user can still use mock data
+      });
   }, []);
+
+  // On mount, check for connected integrations and load real data
+  useEffect(() => {
+    refreshDashboard();
+  }, [refreshDashboard]);
 
   return (
     <MockDataContext.Provider
@@ -247,11 +257,13 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
         customers,
         isLoaded,
         loadMockData,
+        refreshDashboard,
         loadVolumes,
         invoiceVolumes,
         gainsightAggregate,
         gongAggregate,
         ticketAggregate,
+        connectedIntegrations,
       }}
     >
       {children}

@@ -29,6 +29,17 @@ export interface BadCall {
   summary: string;
   participants: string[];
   sentiment_score: number;
+  url?: string;
+}
+
+export interface DashboardData {
+  customers: Customer[];
+  connected_integrations: string[];
+  gong: GongData | null;
+  gainsight: GainsightMetrics | null;
+  load_volumes: VolumeTrend | null;
+  invoice_volumes: VolumeTrend | null;
+  tickets: TicketSummary | null;
 }
 
 export interface GongData {

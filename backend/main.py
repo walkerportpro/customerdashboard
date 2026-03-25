@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import customers, freshdesk, gainsight, gong, rocketlane, salesforce
+from routers import customers, dashboard, freshdesk, gainsight, gong, integrations, rocketlane, salesforce
 
 app = FastAPI(title="Customer Dashboard API", version="1.0.0")
 
@@ -20,6 +20,8 @@ app.include_router(salesforce.router)
 app.include_router(gong.router)
 app.include_router(rocketlane.router)
 app.include_router(freshdesk.router)
+app.include_router(integrations.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/api/health")

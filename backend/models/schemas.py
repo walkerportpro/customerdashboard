@@ -37,6 +37,7 @@ class BadCall(BaseModel):
     summary: str
     participants: list[str]
     sentiment_score: float
+    url: str = ""
 
 
 class GongData(BaseModel):

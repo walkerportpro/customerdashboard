@@ -8,7 +8,10 @@ import {
   ChevronRight,
   Shield,
   Plug,
+  AlertCircle,
 } from "lucide-react";
+import { apiPost, apiDelete } from "../api/client";
+import { useMockData } from "../context/MockDataContext";
 
 interface Integration {
   id: string;
@@ -159,11 +162,13 @@ function persistConfigs(configs: Record<string, Record<string, string>>) {
 }
 
 export default function SettingsPage() {
+  const { refreshDashboard } = useMockData();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savedConfigs, setSavedConfigs] = useState<Record<string, Record<string, string>>>(loadSavedConfigs);
   const [formData, setFormData] = useState<Record<string, Record<string, string>>>(loadSavedConfigs);
   const [saving, setSaving] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function getFieldValue(integrationId: string, fieldKey: string): string {
     return formData[integrationId]?.[fieldKey] || "";
@@ -180,25 +185,47 @@ export default function SettingsPage() {
     return !!savedConfigs[integrationId];
   }
 
-  function handleSave(integration: Integration) {
+  async function handleSave(integration: Integration) {
     const fields = formData[integration.id] || {};
     const hasValues = integration.fields.some((f) => fields[f.key]?.trim());
     if (!hasValues) return;
 
     setSaving(integration.id);
-    setTimeout(() => {
+    setSaveError(null);
+
+    try {
+      // Send credentials to backend
+      await apiPost(`/integrations/${integration.id}/connect`, {
+        credentials: fields,
+      });
+
+      // Persist locally for UI state
       setSavedConfigs((prev) => {
         const next = { ...prev, [integration.id]: { ...fields } };
         persistConfigs(next);
         return next;
       });
-      setSaving(null);
       setSaveSuccess(integration.id);
       setTimeout(() => setSaveSuccess(null), 2000);
-    }, 800);
+
+      // Refresh dashboard to pull real data from newly connected integration
+      refreshDashboard();
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to connect integration"
+      );
+    } finally {
+      setSaving(null);
+    }
   }
 
-  function handleDisconnect(integrationId: string) {
+  async function handleDisconnect(integrationId: string) {
+    try {
+      await apiDelete(`/integrations/${integrationId}/disconnect`);
+    } catch {
+      // Continue with local cleanup even if backend call fails
+    }
+
     setSavedConfigs((prev) => {
       const next = { ...prev };
       delete next[integrationId];
@@ -211,6 +238,7 @@ export default function SettingsPage() {
       return next;
     });
     setExpandedId(null);
+    refreshDashboard();
   }
 
   const grouped = categoryOrder
@@ -380,6 +408,12 @@ export default function SettingsPage() {
                             <span className="text-sm text-green-400 flex items-center gap-1">
                               <CheckCircle2 className="w-4 h-4" />
                               Connected successfully
+                            </span>
+                          )}
+                          {saveError && saving === null && (
+                            <span className="text-sm text-red-400 flex items-center gap-1">
+                              <AlertCircle className="w-4 h-4" />
+                              {saveError}
                             </span>
                           )}
                           <a
