@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Database,
   Check,
+  Sliders,
 } from "lucide-react";
 import { useState } from "react";
 import { useMockData } from "../context/MockDataContext";
@@ -16,6 +17,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/customers", icon: Users, label: "Customers" },
   { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/settings/health-model", icon: Sliders, label: "Health Model" },
 ];
 
 export default function Sidebar() {

@@ -2,6 +2,7 @@
 
 Pulls live data from every connected integration and returns a unified
 payload.  Falls back to mock data for integrations that aren't connected.
+Uses the health engine to calculate real scores from the published health model.
 """
 
 from __future__ import annotations
@@ -17,13 +18,15 @@ from models.schemas import (
     TicketSummary,
     VolumeTrend,
 )
-from services import integration_store
+from services import integration_store, health_model_store
+from services.health_engine import calculate_health_score
 from services.gong_service import fetch_gong_calls
 from mock.mock_customers import get_customers
 from mock.mock_gainsight import get_gainsight_metrics
 from mock.mock_gong import get_gong_data as get_mock_gong
 from mock.mock_salesforce import get_load_volumes, get_invoicing_volumes
 from mock.mock_freshdesk import get_tickets
+from mock.mock_rocketlane import get_onboarding
 
 logger = logging.getLogger(__name__)
 
@@ -74,14 +77,70 @@ async def get_dashboard():
         # TODO: real Freshdesk API integration
         tickets = get_tickets("aggregate")
 
+    # ── Calculate health scores using the published health model ──
+    published_model = health_model_store.get_published_model()
+    scored_customers = []
+    health_details = {}
+
+    for c in customers:
+        # Fetch per-customer integration data
+        c_gainsight = get_gainsight_metrics(c.id)
+        c_gong = get_mock_gong(c.id)
+        c_tickets = get_tickets(c.id)
+        c_onboarding = get_onboarding(c.id)
+        c_volumes = get_load_volumes(c.id)
+
+        result = calculate_health_score(
+            customer=c,
+            model=published_model,
+            gainsight=c_gainsight,
+            gong=c_gong,
+            tickets=c_tickets,
+            onboarding=c_onboarding,
+            volumes=c_volumes,
+        )
+
+        # Update the customer's health score with the calculated value
+        scored = c.model_copy(update={"health_score": result.overall_score})
+        scored_customers.append(scored)
+
+        health_details[c.id] = {
+            "overall_score": result.overall_score,
+            "band": result.band,
+            "confidence": result.confidence,
+            "segment": result.segment_applied,
+            "exceptions_applied": result.exceptions_applied,
+            "explanation": result.explanation,
+            "component_scores": [
+                {
+                    "component_id": cs.component_id,
+                    "component_name": cs.component_name,
+                    "category": cs.category,
+                    "score": cs.score,
+                    "weight": cs.weight,
+                    "weighted_contribution": cs.weighted_contribution,
+                    "data_available": cs.data_available,
+                }
+                for cs in result.component_scores
+            ],
+        }
+
     return {
-        "customers": [c.model_dump() for c in customers],
+        "customers": [c.model_dump() for c in scored_customers],
         "connected_integrations": connected,
         "gong": gong.model_dump() if gong else None,
         "gainsight": gainsight.model_dump() if gainsight else None,
         "load_volumes": load_volumes.model_dump() if load_volumes else None,
         "invoice_volumes": invoice_volumes.model_dump() if invoice_volumes else None,
         "tickets": tickets.model_dump() if tickets else None,
+        "health_details": health_details,
+        "health_model": {
+            "id": published_model.id,
+            "name": published_model.name,
+            "version": published_model.version,
+            "status": published_model.status,
+            "bands": [b.model_dump() for b in published_model.bands],
+        },
     }
 
 
