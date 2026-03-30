@@ -5,6 +5,7 @@ import DashboardPage from "./pages/DashboardPage";
 import CustomerListPage from "./pages/CustomerListPage";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
 import SettingsPage from "./pages/SettingsPage";
+import HealthModelPage from "./pages/HealthModelPage";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/customers" element={<CustomerListPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/health-model" element={<HealthModelPage />} />
         </Routes>
       </Layout>
     </MockDataProvider>
