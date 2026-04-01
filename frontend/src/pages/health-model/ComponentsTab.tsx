@@ -29,7 +29,7 @@ const SOURCE_CONFIG: Record<string, { label: string; icon: typeof Database; colo
   freshdesk: { label: "Freshdesk", icon: Headphones, color: "text-green-400 bg-green-500/10 border-green-500/20" },
   stripe: { label: "Stripe", icon: CreditCard, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
   gong: { label: "Gong", icon: Target, color: "text-violet-400 bg-violet-500/10 border-violet-500/20" },
-  rocketlane: { label: "RocketLane", icon: Rocket, color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+  rocketlane: { label: "Rocketlane", icon: Rocket, color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
   salesforce: { label: "Salesforce", icon: Database, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
 };
 

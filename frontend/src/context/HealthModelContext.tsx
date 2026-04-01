@@ -100,11 +100,14 @@ function makeSensitivity(weight: number) {
   };
 }
 
-function makeNullHandling() {
+function makeNullHandling(
+  impact: "none" | "minor" | "major" | "critical" = "minor",
+  strategy: "assign_neutral" | "assign_penalty" | "ignore_redistribute" | "mark_low_confidence" = "assign_neutral",
+) {
   return {
-    strategy: "assign_neutral" as const,
-    penalty_score: 50,
-    confidence_impact: "minor" as const,
+    strategy,
+    penalty_score: strategy === "assign_penalty" ? 30 : 50,
+    confidence_impact: impact,
   };
 }
 
@@ -117,7 +120,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "engagement",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(25),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("critical"),
     active: true,
     time_window: "30d",
     trend_sensitivity: "medium",
@@ -139,7 +142,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "support",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(15),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("major", "assign_penalty"),
     active: true,
     time_window: "30d",
     trend_sensitivity: "medium",
@@ -161,7 +164,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "financial",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(15),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("critical", "assign_penalty"),
     active: true,
     time_window: "90d",
     trend_sensitivity: "low",
@@ -183,7 +186,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "relationship",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(15),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("major"),
     active: true,
     time_window: "60d",
     trend_sensitivity: "high",
@@ -205,7 +208,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "onboarding",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(10),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("minor", "ignore_redistribute"),
     active: true,
     time_window: "30d",
     trend_sensitivity: "medium",
@@ -227,7 +230,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "support",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(5),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("major"),
     active: true,
     time_window: "14d",
     trend_sensitivity: "high",
@@ -249,7 +252,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "relationship",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(5),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("minor"),
     active: true,
     time_window: "90d",
     trend_sensitivity: "low",
@@ -271,7 +274,7 @@ const SEED_COMPONENTS: ScoreComponent[] = [
     category: "commercial",
     scoring_method: "threshold",
     sensitivity: makeSensitivity(10),
-    null_handling: makeNullHandling(),
+    null_handling: makeNullHandling("major", "mark_low_confidence"),
     active: true,
     time_window: "90d",
     trend_sensitivity: "medium",

@@ -6,32 +6,43 @@ import BeforeAfterTable from "../../components/health-model/BeforeAfterTable";
 import type { SimulationSummary, SimulationResult } from "../../types";
 import { runSimulation } from "../../api/healthModel";
 
-// Fallback mock simulation data when backend is unavailable
+// Deterministic mock simulation data when backend is unavailable
 function generateMockSimulation(): SimulationSummary {
-  const names = [
-    "Acme Logistics", "Beta Freight", "Gamma Transport", "Delta Shipping",
-    "Epsilon Cargo", "Zeta Express", "Eta Movers", "Theta Hauling",
-    "Iota Supply Chain", "Kappa Distribution",
+  const customers = [
+    { id: "cust-001", name: "Acme Logistics", oldScore: 85, delta: -8 },
+    { id: "cust-002", name: "Beta Freight", oldScore: 72, delta: 5 },
+    { id: "cust-003", name: "Gamma Transport", oldScore: 58, delta: -12 },
+    { id: "cust-004", name: "Delta Shipping", oldScore: 91, delta: -3 },
+    { id: "cust-005", name: "Epsilon Cargo", oldScore: 45, delta: 8 },
+    { id: "cust-006", name: "Zeta Express", oldScore: 67, delta: -2 },
+    { id: "cust-007", name: "Eta Movers", oldScore: 78, delta: 4 },
+    { id: "cust-008", name: "Theta Hauling", oldScore: 33, delta: 6 },
+    { id: "cust-009", name: "Iota Supply Chain", oldScore: 62, delta: -15 },
+    { id: "cust-010", name: "Kappa Distribution", oldScore: 88, delta: 1 },
   ];
-  const bands = ["Healthy", "Monitor", "At Risk", "Critical"];
-  const results: SimulationResult[] = names.map((name, i) => {
-    const oldScore = 40 + Math.floor(Math.random() * 50);
-    const delta = Math.floor(Math.random() * 20) - 8;
-    const newScore = Math.max(0, Math.min(100, oldScore + delta));
-    const oldBand = oldScore >= 80 ? "Healthy" : oldScore >= 60 ? "Monitor" : oldScore >= 40 ? "At Risk" : "Critical";
-    const newBand = newScore >= 80 ? "Healthy" : newScore >= 60 ? "Monitor" : newScore >= 40 ? "At Risk" : "Critical";
+
+  function scoreToBand(score: number): string {
+    if (score >= 80) return "Healthy";
+    if (score >= 60) return "Monitor";
+    if (score >= 40) return "At Risk";
+    return "Critical";
+  }
+
+  const bandOrder = ["Healthy", "Monitor", "At Risk", "Critical"];
+  const results: SimulationResult[] = customers.map((c) => {
+    const newScore = Math.max(0, Math.min(100, c.oldScore + c.delta));
     return {
-      customer_id: `cust-${i}`,
-      customer_name: name,
-      old_score: oldScore,
+      customer_id: c.id,
+      customer_name: c.name,
+      old_score: c.oldScore,
       new_score: newScore,
-      old_band: oldBand,
-      new_band: newBand,
-      delta,
+      old_band: scoreToBand(c.oldScore),
+      new_band: scoreToBand(newScore),
+      delta: c.delta,
       top_contributors: [
-        { name: "Product Usage", delta: delta * 0.4 },
-        { name: "Support Burden", delta: delta * 0.3 },
-        { name: "Billing Health", delta: delta * 0.3 },
+        { name: "Product Usage", delta: c.delta * 0.45 },
+        { name: "Support Burden", delta: c.delta * 0.3 },
+        { name: "Relationship Sentiment", delta: c.delta * 0.25 },
       ],
     };
   });
@@ -43,9 +54,7 @@ function generateMockSimulation(): SimulationSummary {
     if (r.old_band !== r.new_band) {
       const key = `${r.old_band.toLowerCase().replace(/ /g, "_")}_to_${r.new_band.toLowerCase().replace(/ /g, "_")}`;
       migrations[key] = (migrations[key] || 0) + 1;
-      const oldIdx = bands.indexOf(r.old_band);
-      const newIdx = bands.indexOf(r.new_band);
-      if (newIdx < oldIdx) improvements++;
+      if (bandOrder.indexOf(r.new_band) < bandOrder.indexOf(r.old_band)) improvements++;
       else regressions++;
     }
   }
@@ -62,7 +71,7 @@ function generateMockSimulation(): SimulationSummary {
 }
 
 export default function PreviewTab() {
-  const { hasChanges, lastSimulation, setLastSimulation } = useHealthModel();
+  const { draft, hasChanges, lastSimulation, setLastSimulation } = useHealthModel();
   const [running, setRunning] = useState(false);
 
   const handleRun = async () => {
@@ -80,7 +89,10 @@ export default function PreviewTab() {
   };
 
   // Compute improvements/regressions from band migrations
-  const bands = ["Healthy", "Monitor", "At Risk", "Critical"];
+  // Band order from best to worst — used for directional comparison
+  const bandLabels = draft?.bands
+    ? [...draft.bands].sort((a, b) => b.min_score - a.min_score).map((b) => b.label)
+    : ["Healthy", "Monitor", "At Risk", "Critical"];
   let improvements = 0;
   let regressions = 0;
   if (lastSimulation) {
@@ -89,8 +101,8 @@ export default function PreviewTab() {
       if (parts.length === 2) {
         const from = parts[0].replace(/_/g, " ");
         const to = parts[1].replace(/_/g, " ");
-        const fromIdx = bands.findIndex((b) => b.toLowerCase() === from);
-        const toIdx = bands.findIndex((b) => b.toLowerCase() === to);
+        const fromIdx = bandLabels.findIndex((b) => b.toLowerCase() === from);
+        const toIdx = bandLabels.findIndex((b) => b.toLowerCase() === to);
         if (toIdx < fromIdx) improvements += count;
         else if (toIdx > fromIdx) regressions += count;
       }
@@ -148,7 +160,7 @@ export default function PreviewTab() {
               const parts = key.split("_to_");
               const from = parts[0]?.replace(/_/g, " ") ?? key;
               const to = parts[1]?.replace(/_/g, " ") ?? "";
-              const isRegression = bands.indexOf(from.charAt(0).toUpperCase() + from.slice(1)) < bands.indexOf(to.charAt(0).toUpperCase() + to.slice(1));
+              const isRegression = bandLabels.indexOf(from.charAt(0).toUpperCase() + from.slice(1)) < bandLabels.indexOf(to.charAt(0).toUpperCase() + to.slice(1));
               return (
                 <div key={key} className="flex items-center justify-between py-2 px-3 rounded-lg bg-dark-800/40">
                   <span className="text-sm text-gray-300 capitalize">{from} → {to}</span>

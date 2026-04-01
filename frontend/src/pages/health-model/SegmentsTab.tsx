@@ -340,7 +340,7 @@ export default function SegmentsTab() {
             <div>
               <p className="text-xs text-dark-400">Customers matching no segment use base weights</p>
               <p className="text-[10px] text-dark-500 mt-0.5">
-                Estimated {Math.max(0, 48 - totalMatched)} unmatched customers based on current segment definitions
+                Customers not matching any segment will use base model weights
               </p>
             </div>
           </div>
