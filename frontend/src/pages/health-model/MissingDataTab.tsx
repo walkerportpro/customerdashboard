@@ -50,8 +50,10 @@ export default function MissingDataTab() {
           <p className="text-xs text-dark-400 mt-1">Custom Null Handling</p>
         </div>
         <div className="glass-card p-5">
-          <div className="text-2xl font-bold text-emerald-400">92%</div>
-          <p className="text-xs text-dark-400 mt-1">Avg Data Coverage</p>
+          <div className="text-2xl font-bold text-emerald-400">
+            {Math.round((activeComps.filter((c) => c.null_handling.strategy !== "ignore_redistribute").length / Math.max(activeComps.length, 1)) * 100)}%
+          </div>
+          <p className="text-xs text-dark-400 mt-1">Components Scoring (not redistributed)</p>
         </div>
       </div>
 

@@ -274,13 +274,10 @@ export default function ThresholdsTab() {
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={band.color}
-                          onChange={(e) => updateBand(band.label, "label", band.label)}
-                          className="w-6 h-6 rounded border border-dark-700/50 cursor-pointer bg-transparent"
+                        <div
+                          className="w-6 h-6 rounded border border-dark-700/50"
                           style={{ backgroundColor: band.color }}
-                          disabled
+                          title={band.color}
                         />
                         <span className="text-xs text-dark-400 font-mono">{band.color}</span>
                       </div>

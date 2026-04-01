@@ -53,10 +53,10 @@ const sourceIcon: Record<string, typeof Database> = {
 };
 
 const nullStrategyLabel: Record<string, string> = {
-  assign_neutral: "Neutral (50)",
-  assign_penalty: "Penalty",
-  ignore_redistribute: "Redistribute",
-  mark_low_confidence: "Low confidence",
+  assign_neutral: "Assign Neutral (50)",
+  assign_penalty: "Assign Penalty",
+  ignore_redistribute: "Ignore & Redistribute",
+  mark_low_confidence: "Mark Low Confidence",
 };
 
 const actionLabel = (action: string, value: string | number) => {
