@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, PhoneOff } from "lucide-react";
 import type { GongData } from "../types";
 
 function sentimentStyle(s: string) {
@@ -7,9 +7,24 @@ function sentimentStyle(s: string) {
   return "badge-red";
 }
 
-function gongCallUrl(call: { url?: string; call_id: string }): string {
-  if (call.url) return call.url;
-  return `https://app.gong.io/call?id=${encodeURIComponent(call.call_id)}`;
+/**
+ * Validate whether a Gong URL is likely to resolve.
+ * Accepts real Gong app URLs (app.gong.io with a path or numeric id param).
+ * Rejects empty strings, placeholder IDs, and non-Gong domains.
+ */
+function isValidGongUrl(url: string | undefined): boolean {
+  if (!url || url.trim() === "") return false;
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.endsWith("gong.io")) return false;
+    // Reject URLs whose only content is a synthetic/mock call_id
+    // Real Gong call IDs are numeric (e.g., "8734210653109...")
+    const idParam = parsed.searchParams.get("id");
+    if (idParam && /^call-/.test(idParam)) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export default function GongSentimentCard({ data }: { data: GongData }) {
@@ -32,27 +47,40 @@ export default function GongSentimentCard({ data }: { data: GongData }) {
             Flagged Calls ({data.bad_calls.length})
           </h4>
           <div className="space-y-2">
-            {data.bad_calls.map((call) => (
-              <a
-                key={call.call_id}
-                href={gongCallUrl(call)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block border border-red-500/20 rounded-lg p-3 bg-red-500/5 hover:bg-red-500/10 hover:border-red-500/30 transition-colors group cursor-pointer"
-              >
-                <div className="text-sm text-gray-300 group-hover:text-gray-200">
-                  {call.summary}
+            {data.bad_calls.map((call) => {
+              const hasValidLink = isValidGongUrl(call.url);
+
+              return (
+                <div
+                  key={call.call_id}
+                  className="block border border-red-500/20 rounded-lg p-3 bg-red-500/5"
+                >
+                  <div className="text-sm text-gray-300">
+                    {call.summary}
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-dark-500">
+                      {call.date} &middot; Sentiment: {call.sentiment_score}
+                    </span>
+                    {hasValidLink ? (
+                      <a
+                        href={call.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-dark-500 hover:text-blue-400 flex items-center gap-1 transition-colors"
+                      >
+                        Open in Gong <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-dark-600 flex items-center gap-1 cursor-default" title="Gong link unavailable — call ID is from demo data">
+                        <PhoneOff className="w-3 h-3" />
+                        Call details unavailable
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-dark-500">
-                    {call.date} &middot; Sentiment: {call.sentiment_score}
-                  </span>
-                  <span className="text-xs text-dark-500 group-hover:text-blue-400 flex items-center gap-1 transition-colors">
-                    Open in Gong <ExternalLink className="w-3 h-3" />
-                  </span>
-                </div>
-              </a>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
