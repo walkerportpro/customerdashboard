@@ -36,13 +36,19 @@ def get_gong_data(customer_id: str) -> GongData:
         idx = (s + i * 17) % len(_BAD_CALL_SUMMARIES)
         day = 1 + ((s + i * 3) % 28)
         month = 1 + ((s + i) % 3)
+        # Generate a realistic-looking (but non-functional) Gong call ID.
+        # Real Gong IDs are large numeric strings. We use a deterministic
+        # hash so the same customer always gets the same IDs.
+        fake_numeric_id = str(abs(hash(f"{customer_id}-{i}")) % 10**16).ljust(16, "0")
         bad_calls.append(
             BadCall(
-                call_id=f"call-{customer_id}-{i:03d}",
+                call_id=fake_numeric_id,
                 date=f"2026-{month:02d}-{day:02d}",
                 summary=_BAD_CALL_SUMMARIES[idx],
                 participants=["Account Manager", "Customer Success Lead", "Client VP Operations"],
                 sentiment_score=round(0.1 + (s % 25) / 100, 2),
+                # Mock data: leave url empty so the frontend shows the
+                # "unavailable" state rather than linking to a 404.
                 url="",
             )
         )
